@@ -1,0 +1,33 @@
+name: webhook-sinker
+
+services:
+  ngrok:
+    image: ngrok/ngrok:latest
+    container_name: ngrok
+    command:
+      - "http"
+      - "http://fastapi:8000"
+      - "--url=${TUNNEL_BASE_URL}"
+    environment:
+      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN}
+      TUNNEL_BASE_URL: ${TUNNEL_BASE_URL}
+    ports:
+      - 4040:4040
+
+  x402-service:
+    image: x402-service
+    pull_policy: never
+    container_name: x402
+    volumes:
+      - ./src/python:/app
+    ports:
+      - "8000:8000"
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    environment:
+      TUNNEL_BASE_URL: ${TUNNEL_BASE_URL}
+      ONESHOT_API_KEY: ${ONESHOT_API_KEY}
+      ONESHOT_API_SECRET: ${ONESHOT_API_SECRET}
+      ONESHOT_BUSINESS_ID: ${ONESHOT_BUSINESS_ID}
+      PAYMNET_TOKEN_ADDRESS: ${PAYMNET_TOKEN_ADDRESS}
+      PREMIUM_PRICE: ${PREMIUM_PRICE}
+    build: ./src/python/
