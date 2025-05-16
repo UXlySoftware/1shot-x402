@@ -26,6 +26,10 @@ logger = logging.getLogger(__name__)
 # read our static url from the environment
 CALLBACK_URL = os.getenv("TUNNEL_BASE_URL") + "/1shot"
 
+# read the desired token and price for our api from the environment
+PAYMENT_TOKEN_ADDRESS = str(os.getenv("PAYMENT_TOKEN_ADDRESS"))
+PREMIUM_PRICE = str(os.getenv("PREMIUM_PRICE"))
+
 # Define a premium dependency for x402 payment verification
 class X402PaymentVerifier:
     def __init__(self, payment_token: str, premium_cost: int):
@@ -61,21 +65,8 @@ class X402PaymentVerifier:
             )
 
     async def validate_payment(self, payment_data: dict) -> bool:
-        # Use Coinbase API to verify the payment
-        async with httpx.AsyncClient() as client:
-            response = await client.get(
-                f"https://api.coinbase.com/v2/check_payment",
-                params={
-                    "payment_id": payment_data.get("payment_id"),
-                    "amount": payment_data.get("amount"),
-                    "currency": payment_data.get("currency"),
-                },
-                headers={"Authorization": f"Bearer {self.coinbase_api_key}"}
-            )
-            if response.status_code == 200:
-                payment_status = response.json().get("status", "failed")
-                return payment_status == "completed"
-        return False
+        # Use 1Shot API to verify payment details and submit the payment transaction
+        logger.info(f"Validating payment: {payment_data}")
 
 # example of a wrapper class to handle webhook verification with FastAPI
 # rather than looking up the public key from 1Shot API each time, you could store it in a database or cache
@@ -177,36 +168,16 @@ async def lifespan(app: FastAPI):
 # create the FastAPI app and register the lifespan event
 app = FastAPI(lifespan=lifespan)
 
+# this is our premium access endpoint that must be paid for to receive the resource
+@app.get("/premium", dependencies=[Depends(X402PaymentVerifier(PAYMENT_TOKEN_ADDRESS, PREMIUM_PRICE))])
+async def premium_endpoint(request: Request):
+    return {"message": "This is a premium endpoint. Payment verified."}
+
 # this is the route where we will receive and authenticate webhook callbacks from 1Shot
 @app.post("/1shot", dependencies=[Depends(webhookAuthenticator())])
 async def handle_python_webhook(request: Request):
     logger.info("Webhook received.")
     return {"message": "Webhook received and signature verified"}
-
-# convenience endpoint to trigger the mint function so you can see the webhook in action
-@app.get("/execute")
-async def execute_mint_function(request: Request):
-    # look up the transaction endpoint we created on server start
-    transaction_endpoints = await oneshot_client.transactions.list(
-        business_id=BUSINESS_ID,
-        params={"chain_id": "11155111", "name": "1Shot Webhook Demo"}
-    )
-
-    # then call it with the necessary parameters generate an execution
-    execution = await oneshot_client.transactions.execute(
-        transaction_id=transaction_endpoints.response[0].id, 
-        params={
-            "to": "0x3546d802e6b3a1c1826b46805fc977a5bd29e990", 
-            "amount": "1000000000000000000"
-        },
-        memo="hello"
-    )
-    if execution.id:
-        logger.info(f"Execution successful: {execution.id}")
-        return {"message": f"Execution successful: {execution.id}"}
-    else:
-        logger.error(f"Execution failed: {execution}")
-        raise HTTPException(status_code=500, detail="Execution failed")
 
 @app.get('/healthcheck')
 async def root():

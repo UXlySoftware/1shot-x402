@@ -6,7 +6,7 @@ services:
     container_name: ngrok
     command:
       - "http"
-      - "http://fastapi:8000"
+      - "http://x402:8000"
       - "--url=${TUNNEL_BASE_URL}"
     environment:
       NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN}
@@ -19,7 +19,7 @@ services:
     pull_policy: never
     container_name: x402
     volumes:
-      - ./src/python:/app
+      - ./src:/app
     ports:
       - "8000:8000"
     command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
@@ -28,6 +28,6 @@ services:
       ONESHOT_API_KEY: ${ONESHOT_API_KEY}
       ONESHOT_API_SECRET: ${ONESHOT_API_SECRET}
       ONESHOT_BUSINESS_ID: ${ONESHOT_BUSINESS_ID}
-      PAYMNET_TOKEN_ADDRESS: ${PAYMNET_TOKEN_ADDRESS}
+      PAYMENT_TOKEN_ADDRESS: ${PAYMENT_TOKEN_ADDRESS}
       PREMIUM_PRICE: ${PREMIUM_PRICE}
-    build: ./src/python/
+    build: ./src
