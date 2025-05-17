@@ -1,2 +1,3 @@
 fastapi[standard]
 uxly-1shot-client
+pydantic

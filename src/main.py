@@ -47,7 +47,7 @@ class X402PaymentVerifier:
         payment_data = self.parse_payment_header(x_payment_header)
 
         # Validate the payment using Coinbase API
-        is_valid = await self.validate_payment(payment_data)
+        is_valid = await self.verify(payment_data)
         if not is_valid:
             raise HTTPException(status_code=402, detail="Payment verification failed.")
         
@@ -64,9 +64,17 @@ class X402PaymentVerifier:
                 detail="Invalid x-payment header format. Expected JSON."
             )
 
-    async def validate_payment(self, payment_data: dict) -> bool:
+    async def verify(self, payment_data: dict) -> bool:
         # Use 1Shot API to verify payment details and submit the payment transaction
         logger.info(f"Validating payment: {payment_data}")
+        # 1. Verify pyload version
+        # 2. Verify the token address is the same as the one we want 
+        # 3. verify the permit signature
+        # 4. verify the deadline
+        # 5. verify the nonce is valid
+        # 6. verify the payer has enough balance
+        # 7. verify the value in payload is enough to cover paymentRequirements.maxAmountRequired 
+        # 8. ensure min amount is above some a threshold for covering gas
 
 # example of a wrapper class to handle webhook verification with FastAPI
 # rather than looking up the public key from 1Shot API each time, you could store it in a database or cache
