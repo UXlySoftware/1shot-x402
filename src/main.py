@@ -7,7 +7,10 @@ from fastapi import (
     Request, 
     HTTPException, 
     Depends,
-    Header
+)
+
+from x402-objects import (
+    X402PaymentVerifier
 )
 
 # import the helper verification function from the uxly_1shot_client package
@@ -24,57 +27,12 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
 # read our static url from the environment
-CALLBACK_URL = os.getenv("TUNNEL_BASE_URL") + "/1shot"
+HOST_URL = os.getenv("TUNNEL_BASE_URL")
 
 # read the desired token and price for our api from the environment
+RECIPIENT_ADDRESS = str(os.getenv("RECIPIENT_ADDRESS"))
 PAYMENT_TOKEN_ADDRESS = str(os.getenv("PAYMENT_TOKEN_ADDRESS"))
 PREMIUM_PRICE = str(os.getenv("PREMIUM_PRICE"))
-
-# Define a premium dependency for x402 payment verification
-class X402PaymentVerifier:
-    def __init__(self, payment_token: str, premium_cost: int):
-        self.payment_token = payment_token
-        self.premium_cost = premium_cost  # Cost of the premium access in wei
-
-    async def __call__(self, x_payment_header: str = Header(None)):
-        if not x_payment_header:
-            raise HTTPException(
-                status_code=402,
-                detail="Payment required. Please provide payment details in the `x-payment` header."
-            )
-        
-        # Example: Extract payment metadata from the header
-        payment_data = self.parse_payment_header(x_payment_header)
-
-        # Validate the payment using Coinbase API
-        is_valid = await self.verify(payment_data)
-        if not is_valid:
-            raise HTTPException(status_code=402, detail="Payment verification failed.")
-        
-        return {"message": "Payment verified"}
-
-    def parse_payment_header(self, x_payment_header: str) -> dict:
-        # Parse the payment header (assuming JSON in header or custom format)
-        # For simplicity, assume the header contains a JSON object with the necessary payment details
-        try:
-            return json.loads(x_payment_header)
-        except ValueError:
-            raise HTTPException(
-                status_code=400,
-                detail="Invalid x-payment header format. Expected JSON."
-            )
-
-    async def verify(self, payment_data: dict) -> bool:
-        # Use 1Shot API to verify payment details and submit the payment transaction
-        logger.info(f"Validating payment: {payment_data}")
-        # 1. Verify pyload version
-        # 2. Verify the token address is the same as the one we want 
-        # 3. verify the permit signature
-        # 4. verify the deadline
-        # 5. verify the nonce is valid
-        # 6. verify the payer has enough balance
-        # 7. verify the value in payload is enough to cover paymentRequirements.maxAmountRequired 
-        # 8. ensure min amount is above some a threshold for covering gas
 
 # example of a wrapper class to handle webhook verification with FastAPI
 # rather than looking up the public key from 1Shot API each time, you could store it in a database or cache
@@ -147,7 +105,7 @@ async def lifespan(app: FastAPI):
             "escrowWalletId": wallets.response[0].id,
             "name": "1Shot Webhook Demo",
             "description": "This mints some tokens on a predeployed ERC20 contract on the Sepolia Network.",
-            "callbackUrl": f"{CALLBACK_URL}", # this will register our ngrok static url as the callback url for the transaction endpoint
+            "callbackUrl": f"{HOST_URL}/1shot", # this will register our ngrok static url as the callback url for the transaction endpoint
             "stateMutability": "nonpayable",
             "functionName": "mint",
             "inputs": [
@@ -177,7 +135,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 # this is our premium access endpoint that must be paid for to receive the resource
-@app.get("/premium", dependencies=[Depends(X402PaymentVerifier(PAYMENT_TOKEN_ADDRESS, PREMIUM_PRICE))])
+@app.get("/premium", dependencies=[Depends(X402PaymentVerifier(RECIPIENT_ADDRESS, PAYMENT_TOKEN_ADDRESS, PREMIUM_PRICE, HOST_URL+"/premium"))])
 async def premium_endpoint(request: Request):
     return {"message": "This is a premium endpoint. Payment verified."}
 

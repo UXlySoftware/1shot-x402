@@ -1,7 +1,17 @@
+import base64
+import json
 from enum import Enum
 from typing import List, Optional, Dict, Any
-from pydantic import BaseModel, Field, root_validator
-
+from pydantic import (
+    BaseModel, 
+    Field, 
+    root_validator, 
+    ValidationError
+)
+from fastapi import (
+    HTTPException, 
+    Header
+)
 
 # Constants
 EVM_ADDRESS_REGEX = r"^0x[0-9a-fA-F]{40}$"
@@ -111,3 +121,82 @@ class SupportedPaymentKind(BaseModel):
 # x402SupportedPaymentKindsResponse
 class SupportedPaymentKindsResponse(BaseModel):
     kinds: List[SupportedPaymentKind]
+
+# Define a premium dependency for x402 payment verification
+class X402PaymentVerifier:
+    def __init__(self, recipient_address: str, payment_token: str, premium_cost: int, resource: str):
+        self.payment_token = payment_token
+        self.premium_cost = premium_cost 
+        self.payment_requirements = PaymentRequirements(
+            scheme=PaymentSchemes.EXACT,
+            network="ethereum",
+            maxAmountRequired=str(premium_cost),
+            resource=resource,
+            description="Premium access to the resource.",
+            payTo=recipient_address,
+            maxTimeoutSeconds=60,
+            asset=payment_token,
+        )
+
+    async def __call__(self, x_payment_header: str = Header(None)):
+        if not x_payment_header:
+            raise HTTPException(
+                status_code=402,
+                detail="Payment required. Please provide payment details in the `x-payment` header."
+            )
+        
+        # Example: Extract payment metadata from the header
+        try:
+            payment_data = self.decode_payment(x_payment_header)
+        except ValueError as e:
+            raise HTTPException(
+                status_code=402,
+                detail=f"Invalid payment data: {str(e)}"
+            )
+
+        # Validate the payment using Coinbase API
+        is_valid = await self.verify(payment_data)
+        if not is_valid:
+            raise HTTPException(status_code=402, detail="Payment verification failed.")
+        
+        return {"message": "Payment verified"}
+
+    def decode_payment(payment: str) -> PaymentPayload:
+        """
+        Decodes a base64-encoded payment string, parses it as JSON, and validates it against the PaymentPayload model.
+
+        Args:
+            payment (str): The base64-encoded payment string.
+
+        Returns:
+            PaymentPayload: The validated PaymentPayload object.
+
+        Raises:
+            ValueError: If decoding, parsing, or validation fails.
+        """
+        try:
+            # Decode the base64-encoded string
+            decoded = base64.b64decode(payment).decode('utf-8')
+
+            # Parse the JSON string into a dictionary
+            parsed = json.loads(decoded)
+
+            # Validate the object against the PaymentPayload model
+            validated = PaymentPayload(**parsed)
+            return validated
+        except (base64.binascii.Error, json.JSONDecodeError) as e:
+            raise ValueError("Failed to decode or parse the payment string.") from e
+        except ValidationError as e:
+            raise ValueError("Validation failed for the payment payload.") from e
+
+    async def verify(self, payment_data: dict) -> bool:
+        # Use 1Shot API to verify payment details and submit the payment transaction
+        logger.info(f"Validating payment: {payment_data}")
+        # 1. Verify pyload version
+        # 2. Verify the token address is the same as the one we want 
+        # 3. verify the permit signature
+        # 4. verify the deadline
+        # 5. verify the nonce is valid
+        # 6. verify the payer has enough balance
+        # 7. verify the value in payload is enough to cover paymentRequirements.maxAmountRequired 
+        # 8. ensure min amount is above some a threshold for covering gas
