@@ -8,7 +8,7 @@ There are 4 primary actors in the x402 scheme:
 
 1. **The Client/Consumer**: This is the entity attempting to read or utilize an API with valuable resources
 2. **The Resource Server**: The Resource Server is the actor who is serving paid content in exchange for money
-3. **A Facilitator**: This is a logical role which could also be filled by the same entity running the API resource server, but could also the a dedicated 3rd party. The purpose of the facilitator is to verify X-Payment headers are valid x402 signature payloads and relay these signed payments to the target blockchain network. [1Shot API](https://1shotapi.com) makes it trivial to build your own facilitator or integrate fascilitator functionality into your server.
+3. **A Facilitator**: This is a logical role which could also be filled by the same entity running the API resource server, but could also the a dedicated 3rd party. The purpose of the facilitator is to [verify X-Payment headers](/src/x402.py#L216) are valid x402 signature payloads and relay these signed payments to the target blockchain network. [1Shot API](https://1shotapi.com) makes it trivial to build your own facilitator or integrate fascilitator functionality into your server.
 4. **The Blockchain**: This is the settlement network where the digital asset is deployed that is being accepted as payment, like [USDC](https://basescan.org/token/0x833589fcd6edb6e08f4c7c32d4f71b54bda02913#code) which implements [EIP-3009](https://eips.ethereum.org/EIPS/eip-3009).
 
 ![x402 Sequence Diagram](./x402-protocol-flow.png)
@@ -50,4 +50,10 @@ You can start the x402 demo stack with docker like this:
 docker compose --env-file docker-compose.env up -d
 ```
 
-You can see requests made to your API endpoints fromt the [ngrok agent dashboard](https://localhost:4040)
+You can see requests made to your API endpoints fromt the [ngrok agent dashboard](http://localhost:4040)
+
+### 5. Pay for a Premium API Route
+
+Now you can simulate paying for premium API route access by signing a payload for `$0.10` (your Base Sepolia USDC you got in step 3). 
+
+Go to the premium endpoint of your ngrok tunnel `/premium` and your browser will load an example dApp UI that will allow you to connect your wallet. 
