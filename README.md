@@ -13,6 +13,11 @@ There are 4 primary actors in the x402 scheme:
 
 ![x402 Sequence Diagram](./x402-protocol-flow.png)
 
+## FastAPI and Pydantic
+
+This demo repo focuses on [FastAPI](https://fastapi.tiangolo.com/) as the web server framework and leverages [Pydantic](https://docs.pydantic.dev/latest/) for data validation of the x402 payload specifications. 
+
+Specifically, we show how FastAPI [route dependencies](/src/main.py#L168) can be used to implement x402 payments while being minimally invasive to your existing codebase. 
 
 ## Run the x402 Demo
 
