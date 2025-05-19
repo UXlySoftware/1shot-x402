@@ -142,7 +142,7 @@ class SupportedPaymentKind(BaseModel):
 class SupportedPaymentKindsResponse(BaseModel):
     kinds: List[SupportedPaymentKind]
 
-# Define a premium dependency for x402 payment verification
+# Dependency Injection class for performing x402 payment verification an processing with 1Shot API
 class X402PaymentVerifier:
     def __init__(
             self, 
