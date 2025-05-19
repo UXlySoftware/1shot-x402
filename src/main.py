@@ -187,4 +187,4 @@ async def handle_python_webhook(request: Request):
 
 @app.get('/healthcheck')
 async def root():
-    return {'message': 'webhook sinker is up!'}
+    return {'message': 'x402 demo is up!'}
