@@ -22,7 +22,8 @@ Specifically, we show how FastAPI [route dependencies](/src/main.py#L168) can be
 ## Run the x402 Demo
 
 ### 1. Log into 1Shot API
-Log into 1Shot API, create an API key and secret, and provision an Escrow Wallet on Base Sepolia. Use the [Base Sepolia faucet](https://portal.cdp.coinbase.com/products/faucet) to fund your 1Shot API Base Sepolia wallet so that it can execute transactions on the network. 
+
+Log into 1Shot API, create an [API key and secret](https://app.1shotapi.dev/api-keys), and provision an [Escrow Wallet](https://app.1shotapi.dev/api-keys) on Base Sepolia. Use the [Base Sepolia faucet](https://portal.cdp.coinbase.com/products/faucet) to fund your 1Shot API Base Sepolia wallet so that it can execute transactions on the network. 
 
 Make a copy of the example.env file like this:
 
