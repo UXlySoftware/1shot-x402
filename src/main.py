@@ -1,5 +1,4 @@
 import os
-import json
 import logging
 from contextlib import asynccontextmanager
 
@@ -90,8 +89,8 @@ async def lifespan(app: FastAPI):
         logger.info("Escrow wallet is provisioned and has sufficient funds.")
 
     # to keep this demo self contained, we are going to check our 1Shot API account for an existing transaction endpoint for the 
-    # contract at 0x17Ed2c50596E1C74175F905918dEd2d2042b87f3 on the Sepolia network, if we don't have one, we'll create it automatically
-    # then we'll use that endpoint in the conversation flow to deploy tokens from a Telegram conversation
+    # USDC contract at 0x036cbd53842c5426634e7929541ec2318f3dcf7e on the Base Sepolia network, if we don't have one, we'll create it automatically
+    # then we'll use that endpoint when people call our /premium endpoint
     # for a more serious application you will probably create your required contract function endpoints ahead of time
     # and input their transaction ids as environment variables
     transaction_endpoints = await oneshot_client.transactions.list(

@@ -154,7 +154,7 @@ class X402PaymentVerifier:
             resource: str, 
             resource_description: str,
             eip712_version: str = "2",
-            ):
+        ):
         self.payment_requirements = PaymentRequirements(
             scheme=PaymentSchemes.EXACT,
             network=SupportedNetworks(network),
