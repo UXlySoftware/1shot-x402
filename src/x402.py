@@ -1,8 +1,9 @@
 import base64
 import json
 import logging
+from time import sleep
 from enum import Enum
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Tuple
 
 from oneshot import (
     oneshot_client,
@@ -22,9 +23,6 @@ from fastapi import (
 )
 
 logger = logging.getLogger(__name__)
-
-from fastapi.responses import HTMLResponse
-from paywall_html import get_paywall_html
 
 # Constants
 EVM_ADDRESS_REGEX = r"^0x[0-9a-fA-F]{40}$"
@@ -150,7 +148,7 @@ class X402PaymentVerifier:
             pay_to_address: str, 
             payment_asset: str,
             asset_name: str,
-            premium_cost: int, 
+            max_amount_required: int, 
             resource: str, 
             resource_description: str,
             eip712_version: str = "2",
@@ -158,7 +156,7 @@ class X402PaymentVerifier:
         self.payment_requirements = PaymentRequirements(
             scheme=PaymentSchemes.EXACT,
             network=SupportedNetworks(network),
-            maxAmountRequired=str(premium_cost),
+            maxAmountRequired=str(max_amount_required),
             resource=resource,
             description=resource_description,
             payTo=pay_to_address,
@@ -175,17 +173,10 @@ class X402PaymentVerifier:
             x_payment: str = Header(None),
             user_agent: str = Header(None),
             accept: str = Header(None)
-    ):
+    ) -> Tuple[bool, PaymentRequirements]:
         if not x_payment:
             if "text/html" in accept and "Mozilla" in user_agent:
-                # Return an HTML response for web browsers
-                html_content = get_paywall_html(
-                    amount=0.05,
-                    testnet=self.payment_requirements.network.value,
-                    payment_requirments=self.payment_requirements,
-                    current_url=self.payment_requirements.resource,  # Replace with the actual URL
-                )
-                return HTMLResponse(content=html_content, status_code=402)
+                return (False, self.payment_requirements)
             else:
                 raise HTTPException(
                     status_code=402,
@@ -194,24 +185,40 @@ class X402PaymentVerifier:
                         "error": "X-PAYMENT header is required.",
                         "accepts": self.payment_requirements.model_dump_json()
                     }
-            )
+                )
         
         # Example: Extract payment metadata from the header
         try:
             payment_data = self.decode_payment(x_payment)
-            logger.info(f"Decoded payment data: {payment_data}")
         except ValueError as e:
             raise HTTPException(
                 status_code=402,
-                detail=f"Invalid payment data: {str(e)}"
-            )
+                detail={
+                    "x402Version": X402Versions.V1.value,
+                    "error": f"X-PAYMENT header has incorrect format: {e}.",
+                    "accepts": self.payment_requirements.model_dump_json()
+                }
+            ) from e
 
         # Validate the payment using Coinbase API
-        is_valid = await self.verify(payment_data)
-        if not is_valid:
-            raise HTTPException(status_code=402, detail="Payment verification failed.")
+        verified = await self.verify(payment_data)
+        if not verified:
+            raise HTTPException(
+                status_code=402,
+                detail={
+                    "x402Version": X402Versions.V1.value,
+                    "error": "X-PAYMENT header did not verify.",
+                    "accepts": self.payment_requirements.model_dump_json()
+                }
+            )
         
-        return {"message": "Payment verified"}
+        # If the payment verified, then submit the payment transaction
+        status = await self.settle(payment_data)
+        
+        if status == "Completed":
+            return (True, self.payment_requirements)
+        elif status == "Failed":
+            return (False, self.payment_requirements)
 
     def decode_payment(self, payment: str) -> PaymentPayload:
         """
@@ -243,7 +250,6 @@ class X402PaymentVerifier:
 
     async def verify(self, payment_data: PaymentPayload) -> bool:
         # Use 1Shot API to verify payment details and submit the payment transaction
-        logger.info(f"Validating payment: {payment_data}")
         transaction_endpoints = await oneshot_client.transactions.list(
             business_id=BUSINESS_ID,
             params={"chain_id": "84532", "name": "Base Sepolia USDC transferWithAuthorization"}
@@ -261,3 +267,32 @@ class X402PaymentVerifier:
             }
         )
         return test_result.success
+    
+    async def settle(self, payment_data: PaymentPayload) -> str:
+        # Use 1Shot API to submit the transaction to the blockchain
+        transaction_endpoints = await oneshot_client.transactions.list(
+            business_id=BUSINESS_ID,
+            params={"chain_id": "84532", "name": "Base Sepolia USDC transferWithAuthorization"}
+        )
+        execution = await oneshot_client.transactions.execute(
+            transaction_id=transaction_endpoints.response[0].id,
+            params={
+                "from": payment_data.payload.authorization.from_,
+                "to": payment_data.payload.authorization.to,
+                "value": payment_data.payload.authorization.value,
+                "validAfter": payment_data.payload.authorization.validAfter,
+                "validBefore": payment_data.payload.authorization.validBefore,
+                "nonce": payment_data.payload.authorization.nonce,
+                "signature": payment_data.payload.signature
+            },
+            memo="x402 payment settlement"
+        )
+        # since 402 is synchronous, we have to wait for the transaction to mine so we can return the premium content
+        while(True):
+            tx_execution = await oneshot_client.executions.get(
+                execution_id=execution.id
+            )
+            if (tx_execution.status == "Completed") or (tx_execution.status == "Failed"):
+                logger.info(f"Transaction execution {tx_execution.id} status: {tx_execution.status}")
+                return tx_execution.status
+            sleep(2)

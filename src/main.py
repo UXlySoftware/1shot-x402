@@ -1,6 +1,7 @@
 import os
 import logging
 from contextlib import asynccontextmanager
+from typing import Tuple
 
 from fastapi import (
     FastAPI, 
@@ -8,10 +9,14 @@ from fastapi import (
     HTTPException, 
     Depends,
 )
+from fastapi.responses import HTMLResponse
 
 from x402 import (
-    X402PaymentVerifier
+    X402PaymentVerifier,
+    PaymentRequirements
 )
+
+from paywall_html import get_paywall_html
 
 # import the helper verification function from the uxly_1shot_client package
 from uxly_1shot_client import verify_webhook
@@ -32,7 +37,7 @@ HOST_URL = os.getenv("TUNNEL_BASE_URL")
 # read the desired token and price for our api from the environment
 RECIPIENT_ADDRESS = str(os.getenv("RECIPIENT_ADDRESS"))
 PAYMENT_TOKEN_ADDRESS = str(os.getenv("PAYMENT_TOKEN_ADDRESS"))
-PREMIUM_PRICE = str(os.getenv("PREMIUM_PRICE"))
+MAX_AMOUNT_REQUIRED = str(os.getenv("MAX_AMOUNT_REQUIRED"))
 
 # example of a wrapper class to handle webhook verification with FastAPI
 # rather than looking up the public key from 1Shot API each time, you could store it in a database or cache
@@ -164,19 +169,30 @@ app = FastAPI(lifespan=lifespan)
 @app.get("/premium")
 async def premium_endpoint(
     request: Request,
-    verifier: dict = Depends(
+    settled: Tuple[bool, PaymentRequirements] = Depends(
         X402PaymentVerifier(
-            "base-sepolia",
-            RECIPIENT_ADDRESS, 
-            PAYMENT_TOKEN_ADDRESS,
-            "USDC",
-            PREMIUM_PRICE, 
-            HOST_URL + "/premium",
-            "Pay in crypto for premium access to the resource"
+            network="base-sepolia",
+            pay_to_address=RECIPIENT_ADDRESS, 
+            payment_asset=PAYMENT_TOKEN_ADDRESS,
+            asset_name="USDC",
+            max_amount_required=MAX_AMOUNT_REQUIRED,
+            resource=HOST_URL + "/premium",
+            resource_description="Pay in crypto for premium access to the resource"
             )
         )
 ):
-    return verifier
+    # For this demo, if the consumer is a human with a web browser, we will show them a paywall
+    # where they can connect a wallet and pay for access
+    if not settled[0]:
+        html_content = get_paywall_html(
+            amount=0.05, # this should match MAX_AMOUNT_REQUIRED but in dollars
+            testnet="base-sepolia",
+            payment_requirments=settled[1],
+            current_url=HOST_URL + "/premium",  # Replace with the actual URL
+        )
+        return HTMLResponse(content=html_content, status_code=402)
+    else:
+        return HTMLResponse(content="Payment Successful", status_code=200)
 
 # this is the route where we will receive and authenticate webhook callbacks from 1Shot
 @app.post("/1shot", dependencies=[Depends(webhookAuthenticator())])

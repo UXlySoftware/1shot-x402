@@ -8,16 +8,8 @@ def get_paywall_html(
         current_url: str,
 ) -> str:
     """
-    Returns the HTML for the paywall page.
+    Returns the HTML for the demonstrator paywall page.
     """
-
-    # Define the chain configuration as a Python dictionary
-    chain_config = {
-        "84532": {
-            "usdcAddress": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
-            "usdcName": "USDC"
-        }
-    }
 
     # Create the configuration script to inject
     config_script = f"""
@@ -26,10 +18,7 @@ def get_paywall_html(
             amount: {amount},
             paymentRequirements: {payment_requirments.model_dump_json()},
             testnet: "{testnet}",
-            currentUrl: "{current_url}",
-            config: {{
-                "chainConfig": {json.dumps(chain_config)},
-            }}
+            currentUrl: "{current_url}"
         }};
         console.log('Payment details initialized:', window.x402);
     </script>
