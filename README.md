@@ -12,3 +12,5 @@ There are 4 primary actors in the x402 scheme:
 4. **The Blockchain**: This is the settlement network where the digital asset is deployed that is being accepted as payment, like [USDC](https://basescan.org/token/0x833589fcd6edb6e08f4c7c32d4f71b54bda02913#code) which implements [EIP-3009](https://eips.ethereum.org/EIPS/eip-3009).
 
 ![x402 Sequence Diagram](./x402-protocol-flow.png)
+
+Get some [Base Sepolia USDC](https://faucet.circle.com/) funds to try this out. 

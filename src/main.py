@@ -1,4 +1,5 @@
 import os
+import json
 import logging
 from contextlib import asynccontextmanager
 
@@ -9,7 +10,7 @@ from fastapi import (
     Depends,
 )
 
-from x402-objects import (
+from x402 import (
     X402PaymentVerifier
 )
 
@@ -79,10 +80,10 @@ async def lifespan(app: FastAPI):
     """Lifespan event to check for or create a demo 1Shot API transaction endpoint."""
     # lets start by checking that we have an escrow wallet provisioned for our account on the Sepolia network
     # if not we will exit since we must have one to continue
-    wallets = await oneshot_client.wallets.list(BUSINESS_ID, {"chain_id": "11155111"})
-    if not ((len(wallets.response) >= 1) and (float(wallets.response[0].account_balance_details.balance) > 0.0001)):
+    wallets = await oneshot_client.wallets.list(BUSINESS_ID, {"chain_id": "84532"})
+    if not ((len(wallets.response) >= 1) and (float(wallets.response[0].account_balance_details.balance) > 0.00001)):
         raise RuntimeError(
-            "Escrow wallet not provisioned or insufficient balance on the Sepolia network. "
+            "Escrow wallet not provisioned or insufficient balance on the Base Sepolia network. "
             "Please ensure an escrow wallet exists and has sufficient funds by logging into https://app.1shotapi.dev/escrow-wallets."
         )
     else:
@@ -95,29 +96,55 @@ async def lifespan(app: FastAPI):
     # and input their transaction ids as environment variables
     transaction_endpoints = await oneshot_client.transactions.list(
         business_id=BUSINESS_ID,
-        params={"chain_id": "11155111", "name": "1Shot Webhook Demo"}
+        params={"chain_id": "84532", "name": "Base Sepolia USDC transferWithAuthorization"}
     )
     if len(transaction_endpoints.response) == 0:
-        logger.info("Creating new transaction endpoint for webhook demo.")
+        logger.info("Creating new transaction endpoint for x402 demo.")
         endpoint_payload = {
-            "chain": "11155111",
-            "contractAddress": "0x17Ed2c50596E1C74175F905918dEd2d2042b87f3",
+            "chain": "84532",
+            "contractAddress": "0x036cbd53842c5426634e7929541ec2318f3dcf7e",
             "escrowWalletId": wallets.response[0].id,
-            "name": "1Shot Webhook Demo",
-            "description": "This mints some tokens on a predeployed ERC20 contract on the Sepolia Network.",
+            "name": "Base Sepolia USDC transferWithAuthorization",
+            "description": "This endpoint is used with the x402 API payment protocol.",
             "callbackUrl": f"{HOST_URL}/1shot", # this will register our ngrok static url as the callback url for the transaction endpoint
             "stateMutability": "nonpayable",
-            "functionName": "mint",
+            "functionName": "transferWithAuthorization",
             "inputs": [
                 {
-                    "name": "to",
+                    "name": "from",
                     "type": "address",
                     "index": 0,
                 },
                 {
-                    "name": "amount",
-                    "type": "uint",
+                    "name": "to",
+                    "type": "address",
                     "index": 1
+                },
+                {
+                    "name": "value",
+                    "type": "uint",
+                    "index": 2
+                },
+                {
+                    "name": "validAfter",
+                    "type": "uint",
+                    "index": 3
+                },
+                {
+                    "name": "validBefore",
+                    "type": "uint",
+                    "index": 4
+                },
+                {
+                    "name": "nonce",
+                    "type": "bytes",
+                    "typeSize": 32,
+                    "index": 5
+                },
+                {
+                    "name": "signature",
+                    "type": "bytes",
+                    "index": 6
                 }
             ],
             "outputs": []
@@ -135,9 +162,22 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 # this is our premium access endpoint that must be paid for to receive the resource
-@app.get("/premium", dependencies=[Depends(X402PaymentVerifier(RECIPIENT_ADDRESS, PAYMENT_TOKEN_ADDRESS, PREMIUM_PRICE, HOST_URL+"/premium"))])
-async def premium_endpoint(request: Request):
-    return {"message": "This is a premium endpoint. Payment verified."}
+@app.get("/premium")
+async def premium_endpoint(
+    request: Request,
+    verifier: dict = Depends(
+        X402PaymentVerifier(
+            "base-sepolia",
+            RECIPIENT_ADDRESS, 
+            PAYMENT_TOKEN_ADDRESS,
+            "USDC",
+            PREMIUM_PRICE, 
+            HOST_URL + "/premium",
+            "Pay in crypto for premium access to the resource"
+            )
+        )
+):
+    return verifier
 
 # this is the route where we will receive and authenticate webhook callbacks from 1Shot
 @app.post("/1shot", dependencies=[Depends(webhookAuthenticator())])
