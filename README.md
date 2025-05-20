@@ -1,4 +1,4 @@
-[![Watch the tutorial](https://img.youtube.com/vi/Qp7n2ZnlbSw/maxresdefault.jpg)](https://youtu.be/Qp7n2ZnlbSw)
+[![Watch the tutorial](https://img.youtube.com/vi/Qp7n2ZnlbSw/hqdefault.jpg)](https://youtu.be/Qp7n2ZnlbSw)
 
 # Implementing x402 with 1Shot and FastAPI
 
