@@ -6,9 +6,12 @@
 
 # Implementing x402 with 1Shot and FastAPI
 
-[x402](https://www.x402.org/) is a payment standard proposed by Coinbase that enables API services to charge for access by piggybacking on top of the
-existing [HTTP 402](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status/402) status code. Specifically, x402 enables API customers,
-particularly AI agents, to pay for and gain access to premium API resources by cryptigraphically signing (see [EIP-712](https://eips.ethereum.org/EIPS/eip-712)) time-bound value transfers that are executed onchain by a *fascilitator* (e.g. [1Shot API](https://1shotapi.com)). 
+[x402](https://www.x402.org/) is a payment standard proposed by Coinbase that enables API services to charge for access by 
+piggybacking on top of the existing [HTTP 402](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status/402) status 
+code. Specifically, x402 enables API customers, particularly AI agents, to pay for and gain access to premium API resources by 
+cryptographically signing (see [EIP-712](https://eips.ethereum.org/EIPS/eip-712)) 
+[time-bound value transfers](https://eips.ethereum.org/EIPS/eip-3009) that are executed onchain by a *fascilitator* (e.g. 
+[1Shot API](https://1shotapi.com)). 
 
 There are 4 primary actors in the x402 scheme:
 
