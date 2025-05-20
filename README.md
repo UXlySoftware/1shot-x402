@@ -10,7 +10,7 @@ There are 4 primary actors in the x402 scheme:
 
 1. **The Client/Consumer**: This is the entity attempting to read or utilize an API with valuable resources
 2. **The Resource Server**: The Resource Server is the actor who is serving paid content in exchange for money
-3. **A Facilitator**: This is a logical role which could also be filled by the same entity running the API resource server, but could also the a dedicated 3rd party. The purpose of the facilitator is to [verify X-Payment headers](/src/x402.py#L216) are valid x402 signature payloads and relay these signed payments to the target blockchain network. [1Shot API](https://1shotapi.com) makes it trivial to build your own facilitator or integrate fascilitator functionality into your server.
+3. **A Facilitator**: This is a logical role which could also be filled by the same entity running the API resource server, but could also the a dedicated 3rd party. The purpose of the facilitator is to [verify X-Payment headers](/src/x402.py#L223) are valid x402 signature payloads and relay these signed payments to the target blockchain network. [1Shot API](https://1shotapi.com) makes it trivial to build your own facilitator or integrate fascilitator functionality into your server.
 4. **The Blockchain**: This is the settlement network where the digital asset is deployed that is being accepted as payment, like [USDC](https://basescan.org/token/0x833589fcd6edb6e08f4c7c32d4f71b54bda02913#code) which implements [EIP-3009](https://eips.ethereum.org/EIPS/eip-3009).
 
 ![x402 Sequence Diagram](./x402-protocol-flow.png)
@@ -19,7 +19,7 @@ There are 4 primary actors in the x402 scheme:
 
 This demo repo focuses on [FastAPI](https://fastapi.tiangolo.com/) as the web server framework and leverages [Pydantic](https://docs.pydantic.dev/latest/) for data validation of the x402 payload specifications. 
 
-Specifically, we show how FastAPI [route dependencies](/src/main.py#L168) can be used to implement x402 payments while being minimally invasive to your existing codebase. 
+Specifically, we show how FastAPI [route dependencies](/src/main.py#L179) can be used to implement x402 payments while being minimally invasive to your existing codebase. 
 
 ## Run the x402 Demo
 
