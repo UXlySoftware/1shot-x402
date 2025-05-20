@@ -9,7 +9,7 @@ from fastapi import (
     HTTPException, 
     Depends,
 )
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 
 from x402 import (
     X402PaymentVerifier,
@@ -192,7 +192,11 @@ async def premium_endpoint(
         )
         return HTMLResponse(content=html_content, status_code=402)
     else:
-        return HTMLResponse(content="Payment Successful", status_code=200)
+        # Return the HTMLResponse with the embedded YouTube video
+        return HTMLResponse(
+            content='<iframe width="560" height="315" src="https://www.youtube.com/embed/dQw4w9WgXcQ" frameborder="0" allowfullscreen></iframe>',
+            status_code=200
+        )
 
 # this is the route where we will receive and authenticate webhook callbacks from 1Shot
 @app.post("/1shot", dependencies=[Depends(webhookAuthenticator())])
