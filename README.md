@@ -1,4 +1,8 @@
-[![Watch the tutorial](https://img.youtube.com/vi/Qp7n2ZnlbSw/hqdefault.jpg)](https://youtu.be/Qp7n2ZnlbSw)
+<div align="center">
+  <a href="https://youtu.be/Qp7n2ZnlbSw">
+    <img src="https://img.youtube.com/vi/Qp7n2ZnlbSw/hqdefault.jpg" alt="Watch the tutorial">
+  </a>
+</div>
 
 # Implementing x402 with 1Shot and FastAPI
 
