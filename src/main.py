@@ -165,6 +165,13 @@ async def lifespan(app: FastAPI):
 # create the FastAPI app and register the lifespan event
 app = FastAPI(lifespan=lifespan)
 
+@app.get("/")
+async def root_redirect():
+    """
+    Redirects the root URL ('/') to the '/premium' endpoint.
+    """
+    return RedirectResponse(url="/premium")
+
 # this is our premium access endpoint that must be paid for to receive the resource
 @app.get("/premium")
 async def premium_endpoint(

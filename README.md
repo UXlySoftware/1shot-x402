@@ -57,6 +57,8 @@ You can see requests made to your API endpoints fromt the [ngrok agent dashboard
 
 ### 5. Pay for a Premium API Route
 
+![Premium Content Paywall](x402-demo.gif)
+
 Now you can simulate paying for premium API route access by signing a payload for `$0.05` (your Base Sepolia USDC you got in step 3). 
 
 Go to the premium endpoint of your ngrok tunnel `/premium` and your browser will load an example dApp UI that will allow you to connect your wallet. 
