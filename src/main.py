@@ -56,18 +56,18 @@ class webhookAuthenticator:
             
             # look up the transaction endpoint that generated the callback and get the public key
             # in a production application, store the public key in a database or cache for faster access
-            transaction_endpoint = await oneshot_client.transactions.get(
-                transaction_id=body["data"]["transactionId"],
+            contract_method = await oneshot_client.contract_methods.get(
+                contract_method_id=body["data"]["transactionId"],
             )
 
-            if not transaction_endpoint.public_key:
+            if not contract_method.public_key:
                 raise HTTPException(status_code=400, detail="Public key not found")
 
             # Verify the signature with the public key you stored corresponding to the transaction ID
             is_valid = verify_webhook(
                 body=body,
                 signature=signature,
-                public_key=transaction_endpoint.public_key
+                public_key=contract_method.public_key
             )
 
             if not is_valid:
@@ -98,16 +98,16 @@ async def lifespan(app: FastAPI):
     # then we'll use that endpoint when people call our /premium endpoint
     # for a more serious application you will probably create your required contract function endpoints ahead of time
     # and input their transaction ids as environment variables
-    transaction_endpoints = await oneshot_client.transactions.list(
+    contract_methods = await oneshot_client.contract_methods.list(
         business_id=BUSINESS_ID,
         params={"chain_id": "84532", "name": "Base Sepolia USDC transferWithAuthorization"}
     )
-    if len(transaction_endpoints.response) == 0:
-        logger.info("Creating new transaction endpoint for x402 demo.")
+    if len(contract_methods.response) == 0:
+        logger.info("Creating new contract method endpoint for x402 demo.")
         endpoint_payload = {
-            "chain": "84532",
+            "chain_id": "84532",
             "contractAddress": "0x036cbd53842c5426634e7929541ec2318f3dcf7e",
-            "escrowWalletId": wallets.response[0].id,
+            "walletId": wallets.response[0].id,
             "name": "Base Sepolia USDC transferWithAuthorization",
             "description": "This endpoint is used with the x402 API payment protocol.",
             "callbackUrl": f"{HOST_URL}/1shot", # this will register our ngrok static url as the callback url for the transaction endpoint
@@ -153,7 +153,7 @@ async def lifespan(app: FastAPI):
             ],
             "outputs": []
         }
-        transaction_endpoint = await oneshot_client.transactions.create(
+        contract_method = await oneshot_client.contract_methods.create(
             business_id=BUSINESS_ID,
             params=endpoint_payload
         )

@@ -250,12 +250,12 @@ class X402PaymentVerifier:
 
     async def verify(self, payment_data: PaymentPayload) -> bool:
         # Use 1Shot API to verify payment details and submit the payment transaction
-        transaction_endpoints = await oneshot_client.transactions.list(
+        contract_methods = await oneshot_client.contract_methods.list(
             business_id=BUSINESS_ID,
             params={"chain_id": "84532", "name": "Base Sepolia USDC transferWithAuthorization"}
         )
-        test_result = await oneshot_client.transactions.test(
-            transaction_id=transaction_endpoints.response[0].id,
+        test_result = await oneshot_client.contract_methods.test(
+            contract_method_id=contract_methods.response[0].id,
             params={
                 "from": payment_data.payload.authorization.from_,
                 "to": payment_data.payload.authorization.to,
@@ -270,12 +270,12 @@ class X402PaymentVerifier:
     
     async def settle(self, payment_data: PaymentPayload) -> str:
         # Use 1Shot API to submit the transaction to the blockchain
-        transaction_endpoints = await oneshot_client.transactions.list(
+        contract_methods = await oneshot_client.contract_methods.list(
             business_id=BUSINESS_ID,
             params={"chain_id": "84532", "name": "Base Sepolia USDC transferWithAuthorization"}
         )
-        execution = await oneshot_client.transactions.execute(
-            transaction_id=transaction_endpoints.response[0].id,
+        execution = await oneshot_client.contract_methods.execute(
+            contract_method_id=contract_methods.response[0].id,
             params={
                 "from": payment_data.payload.authorization.from_,
                 "to": payment_data.payload.authorization.to,
@@ -289,8 +289,8 @@ class X402PaymentVerifier:
         )
         # since 402 is synchronous, we have to wait for the transaction to mine so we can return the premium content
         while(True):
-            tx_execution = await oneshot_client.executions.get(
-                execution_id=execution.id
+            tx_execution = await oneshot_client.transactions.get(
+                transaction_id=execution.id
             )
             if (tx_execution.status == "Completed") or (tx_execution.status == "Failed"):
                 logger.info(f"Transaction execution {tx_execution.id} status: {tx_execution.status}")
