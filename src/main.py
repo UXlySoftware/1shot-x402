@@ -54,7 +54,7 @@ class webhookAuthenticator:
             if not signature:
                 raise HTTPException(status_code=400, detail="Signature field missing")
             
-            # look up the transaction endpoint that generated the callback and get the public key
+            # look up the contract method that generated the callback and get the public key
             # in a production application, store the public key in a database or cache for faster access
             contract_method = await oneshot_client.contract_methods.get(
                 contract_method_id=body["data"]["transactionId"],
@@ -63,7 +63,7 @@ class webhookAuthenticator:
             if not contract_method.public_key:
                 raise HTTPException(status_code=400, detail="Public key not found")
 
-            # Verify the signature with the public key you stored corresponding to the transaction ID
+            # Verify the signature with the public key you stored corresponding to the contract method
             is_valid = verify_webhook(
                 body=body,
                 signature=signature,
@@ -76,7 +76,7 @@ class webhookAuthenticator:
             logger.error(f"Error verifying webhook: {e}")
             raise HTTPException(status_code=500, detail=f"Internal error: {e}")
 
-# for convenience, we are going to automaically create an endoint when we start the FastAPI server
+# for convenience, we are going to automatically create a contract method endpoint when we start the FastAPI server.
 # on restarts, we will check if the endpoint exists and if it does, we will skip creating it
 # this will save us the hassle of having to create it manually
 @asynccontextmanager
@@ -93,11 +93,11 @@ async def lifespan(app: FastAPI):
     else:
         logger.info("Escrow wallet is provisioned and has sufficient funds.")
 
-    # to keep this demo self contained, we are going to check our 1Shot API account for an existing transaction endpoint for the 
+    # to keep this demo self contained, we are going to check our 1Shot API account for an existing contract method for the 
     # USDC contract at 0x036cbd53842c5426634e7929541ec2318f3dcf7e on the Base Sepolia network, if we don't have one, we'll create it automatically
-    # then we'll use that endpoint when people call our /premium endpoint
+    # then we'll use that endpoint when people call our /premium route
     # for a more serious application you will probably create your required contract function endpoints ahead of time
-    # and input their transaction ids as environment variables
+    # and input their contract method ids as environment variables
     contract_methods = await oneshot_client.contract_methods.list(
         business_id=BUSINESS_ID,
         params={"chain_id": "84532", "name": "Base Sepolia USDC transferWithAuthorization"}
